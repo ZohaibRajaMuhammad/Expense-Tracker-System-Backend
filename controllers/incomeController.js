@@ -9,8 +9,8 @@ exports.getIncomes = async (req, res) => {
     res.json(incomes);
   } catch (error) {
     res.status(500).json({ message: error.message });
-  }
-};
+    }
+  };
 
 exports.addIncome = async (req, res) => {
   try {

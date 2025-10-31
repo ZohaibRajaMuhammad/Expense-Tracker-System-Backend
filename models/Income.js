@@ -19,9 +19,8 @@ const incomeSchema = new mongoose.Schema({
   category: {
     type: String,
     required: [true, 'Category is required'],
-    // FIXED: Changed from expense categories to income categories
-    enum: ['Salary', 'Freelance', 'Investment', 'Business', 'Rental', 'Other']
-  },
+    enum: ['Food', 'Transport', 'Entertainment', 'Healthcare', 'Shopping', 'Bills', 'Education', 'Other']
+  }, 
   description: {
     type: String,
     trim: true

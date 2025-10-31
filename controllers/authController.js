@@ -1,5 +1,5 @@
 const User = require('../models/User');
-const Income = require('../models/Income'); 
+const Income = require('../models/Income'); // Added Income model import
 const jwt = require('jsonwebtoken');
 const { uploadToCloudinary, deleteFromCloudinary } = require('../config/realCloudinary');
 
@@ -11,10 +11,11 @@ const generateToken = (id) => {
 
 exports.register = async (req, res) => {
   try {
-    console.log('\n DEBUG - Registration started');
-    console.log(' Request body keys:', Object.keys(req.body));
-    console.log(' Request files:', req.files ? Object.keys(req.files) : 'No files');
+    console.log('\n🎯 DEBUG - Registration started');
+    console.log('📦 Request body keys:', Object.keys(req.body));
+    console.log('📁 Request files:', req.files ? Object.keys(req.files) : 'No files');
     
+    // Debug request details
     console.log('🔍 Request details:', {
       contentType: req.headers['content-type'],
       contentLength: req.headers['content-length'],
@@ -35,6 +36,7 @@ exports.register = async (req, res) => {
 
     const { firstName, lastName, email, password, confirmPassword } = req.body;
 
+    // Enhanced validation with specific messages
     if (!firstName?.trim()) {
       return res.status(400).json({
         success: false,
@@ -56,6 +58,7 @@ exports.register = async (req, res) => {
       });
     }
 
+    // Email format validation
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email.trim())) {
       return res.status(400).json({
@@ -92,6 +95,7 @@ exports.register = async (req, res) => {
       });
     }
 
+    // Check if user exists
     const userExists = await User.findOne({ email: email.toLowerCase().trim() });
     if (userExists) {
       return res.status(400).json({ 
@@ -103,20 +107,23 @@ exports.register = async (req, res) => {
     let profileImageUrl = null;
     let cloudinaryStatus = 'not_attempted';
 
+    // Check Cloudinary configuration
     const cloudinaryConfigured = process.env.CLOUDINARY_CLOUD_NAME && 
                                 process.env.CLOUDINARY_API_KEY && 
                                 process.env.CLOUDINARY_API_SECRET;
 
-    console.log(' Cloudinary configuration check:', {
+    console.log('☁️ Cloudinary configuration check:', {
       configured: cloudinaryConfigured,
       cloud_name: process.env.CLOUDINARY_CLOUD_NAME ? 'Set' : 'Missing',
       api_key: process.env.CLOUDINARY_API_KEY ? 'Set' : 'Missing',
       api_secret: process.env.CLOUDINARY_API_SECRET ? 'Set' : 'Missing'
     });
 
+    // Handle file upload only if Cloudinary is properly configured
     if (req.files && req.files.profileImage && cloudinaryConfigured) {
       const file = req.files.profileImage;
       
+      // Enhanced file validation
       if (!file.mimetype.startsWith('image/')) {
         return res.status(400).json({ 
           success: false,
@@ -138,42 +145,47 @@ exports.register = async (req, res) => {
         });
       }
 
-      console.log('Attempting Cloudinary upload...');
+      console.log('🔄 Attempting Cloudinary upload...');
       
       try {
+        // Test Cloudinary connectivity first
         const { cloudinary } = require('../config/realCloudinary');
         await cloudinary.api.ping();
-        console.log(' Cloudinary connectivity test passed');
+        console.log('✅ Cloudinary connectivity test passed');
 
+        // Proceed with upload
         const uploadResult = await uploadToCloudinary(file.data);
         profileImageUrl = uploadResult.secure_url;
         cloudinaryStatus = 'success';
-        console.log(' Cloudinary upload successful! URL:', profileImageUrl);
+        console.log('✅ Cloudinary upload successful! URL:', profileImageUrl);
         
       } catch (uploadError) {
         cloudinaryStatus = 'failed';
-        console.error(' Cloudinary upload failed:', {
+        console.error('❌ Cloudinary upload failed:', {
           message: uploadError.message,
           code: uploadError.http_code,
           name: uploadError.name
         });
         
-        console.log(' Continuing registration without profile image');
+        // Don't fail registration - continue without image
+        console.log('⚠️ Continuing registration without profile image');
         
+        // Provide helpful error message for specific cases
         if (uploadError.message.includes('ENOTFOUND') || uploadError.message.includes('getaddrinfo')) {
-          console.log(' Network issue: Cannot reach Cloudinary servers');
+          console.log('🌐 Network issue: Cannot reach Cloudinary servers');
         } else if (uploadError.http_code === 401) {
-          console.log(' Cloudinary authentication failed - check API credentials');
+          console.log('🔑 Cloudinary authentication failed - check API credentials');
         }
       }
     } else if (req.files && req.files.profileImage && !cloudinaryConfigured) {
-      console.log(' Skipping image upload - Cloudinary not configured');
+      console.log('⏸️ Skipping image upload - Cloudinary not configured');
       cloudinaryStatus = 'skipped_no_config';
     } else {
-      console.log('No profile image provided or no files in request');
+      console.log('⏸️ No profile image provided or no files in request');
       cloudinaryStatus = 'no_file';
     }
 
+    // Create user (with or without image)
     console.log('👤 Creating user in database...');
     const user = await User.create({
       firstName: firstName.trim(),
@@ -183,8 +195,9 @@ exports.register = async (req, res) => {
       profileImage: profileImageUrl
     });
 
-    console.log(' User created successfully:', user.email);
+    console.log('✅ User created successfully:', user.email);
 
+    // Create sample income data for new user (optional)
     try {
       const sampleIncome = new Income({
         user: user._id,
@@ -199,8 +212,10 @@ exports.register = async (req, res) => {
       console.log('✅ Sample income created for new user');
     } catch (incomeError) {
       console.log('⚠️ Could not create sample income:', incomeError.message);
+      // Don't fail registration if sample income fails
     }
 
+    // Determine success message based on image upload status
     let successMessage = 'User registered successfully';
     if (cloudinaryStatus === 'success') {
       successMessage = 'User registered successfully with profile image';
@@ -230,8 +245,9 @@ exports.register = async (req, res) => {
     });
 
   } catch (error) {
-    console.error(' Registration error:', error);
+    console.error('❌ Registration error:', error);
     
+    // Handle specific error types
     if (error.name === 'ValidationError') {
       const errors = Object.values(error.errors).map(err => err.message);
       return res.status(400).json({
@@ -248,6 +264,7 @@ exports.register = async (req, res) => {
       });
     }
 
+    // Generic server error
     res.status(500).json({ 
       success: false,
       message: 'Registration failed due to server error',
@@ -261,6 +278,7 @@ exports.login = async (req, res) => {
   try {
     const { email, password } = req.body;
 
+    // Validate required fields
     if (!email || !password) {
       return res.status(400).json({ 
         success: false,
@@ -268,9 +286,11 @@ exports.login = async (req, res) => {
       });
     }
 
+    // Check for user
     const user = await User.findOne({ email: email.toLowerCase().trim() });
 
     if (user && (await user.matchPassword(password))) {
+      // Get user's income count for dashboard info
       const incomeCount = await Income.countDocuments({ user: user._id });
       
       res.json({
@@ -304,6 +324,9 @@ exports.login = async (req, res) => {
   }
 };
 
+// @desc    Update user profile
+// @route   PUT /api/auth/profile
+// @access  Private
 exports.updateProfile = async (req, res) => {
   try {
     console.log('🔄 Profile update request received');
@@ -319,9 +342,11 @@ exports.updateProfile = async (req, res) => {
       });
     }
 
+    // Update basic information
     if (req.body.firstName) user.firstName = req.body.firstName.trim();
     if (req.body.lastName) user.lastName = req.body.lastName.trim();
     
+    // Handle email update with duplicate check
     if (req.body.email && req.body.email !== user.email) {
       const emailExists = await User.findOne({ 
         email: req.body.email.toLowerCase().trim(),
@@ -339,15 +364,17 @@ exports.updateProfile = async (req, res) => {
 
     let imageUpdated = false;
 
+    // Handle new image upload using express-fileupload
     if (req.files && req.files.profileImage) {
       const file = req.files.profileImage;
       
-      console.log(' Processing profile image update:', {
+      console.log('📸 Processing profile image update:', {
         name: file.name,
         size: `${(file.size / 1024 / 1024).toFixed(2)}MB`,
         mimetype: file.mimetype
       });
 
+      // Check file type and size
       if (!file.mimetype.startsWith('image/')) {
         return res.status(400).json({ 
           success: false,
@@ -362,22 +389,25 @@ exports.updateProfile = async (req, res) => {
         });
       }
 
+      // Delete old image from Cloudinary if exists
       if (user.profileImage && user.profileImage.includes('cloudinary')) {
         try {
           await deleteFromCloudinary(user.profileImage);
-          console.log('Old profile image deleted from Cloudinary');
+          console.log('🗑️ Old profile image deleted from Cloudinary');
         } catch (deleteError) {
-          console.error(' Error deleting old image:', deleteError);
+          console.error('⚠️ Error deleting old image:', deleteError);
+          // Continue with upload even if deletion fails
         }
       }
 
+      // Upload new image to Cloudinary
       try {
         const uploadResult = await uploadToCloudinary(file.data);
         user.profileImage = uploadResult.secure_url;
         imageUpdated = true;
-        console.log('New profile image uploaded:', user.profileImage);
+        console.log('✅ New profile image uploaded:', user.profileImage);
       } catch (uploadError) {
-        console.error(' Cloudinary upload error:', uploadError);
+        console.error('❌ Cloudinary upload error:', uploadError);
         return res.status(400).json({ 
           success: false,
           message: 'Error uploading image to cloud storage' 
@@ -401,7 +431,7 @@ exports.updateProfile = async (req, res) => {
     });
 
   } catch (error) {
-    console.error(' Profile update error:', error);
+    console.error('❌ Profile update error:', error);
     res.status(500).json({ 
       success: false,
       message: 'Error updating profile',
@@ -410,13 +440,17 @@ exports.updateProfile = async (req, res) => {
   }
 };
 
+// @desc    Get user profile
+// @route   GET /api/auth/profile
+// @access  Private
 exports.getProfile = async (req, res) => {
   try {
-    console.log(' Fetching user profile for:', req.user._id);
+    console.log('📋 Fetching user profile for:', req.user._id);
     
     const user = await User.findById(req.user._id).select('-password');
     
     if (user) {
+      // Get user statistics for dashboard
       const incomeStats = await Income.aggregate([
         { $match: { user: user._id } },
         {
@@ -459,7 +493,7 @@ exports.getProfile = async (req, res) => {
       });
     }
   } catch (error) {
-    console.error(' Get profile error:', error);
+    console.error('❌ Get profile error:', error);
     res.status(500).json({ 
       success: false,
       message: 'Error fetching profile',
@@ -468,9 +502,12 @@ exports.getProfile = async (req, res) => {
   }
 };
 
+// @desc    Delete user account and all associated data
+// @route   DELETE /api/auth/profile
+// @access  Private
 exports.deleteAccount = async (req, res) => {
   try {
-    console.log(' Deleting user account:', req.user._id);
+    console.log('🗑️ Deleting user account:', req.user._id);
     
     const user = await User.findById(req.user._id);
     
@@ -481,22 +518,26 @@ exports.deleteAccount = async (req, res) => {
       });
     }
 
+    // Delete user's profile image from Cloudinary if exists
     if (user.profileImage && user.profileImage.includes('cloudinary')) {
       try {
         await deleteFromCloudinary(user.profileImage);
-        console.log(' Profile image deleted from Cloudinary');
+        console.log('🗑️ Profile image deleted from Cloudinary');
       } catch (deleteError) {
-        console.error(' Error deleting profile image:', deleteError);
+        console.error('⚠️ Error deleting profile image:', deleteError);
+        // Continue with account deletion even if image deletion fails
       }
     }
 
+    // Delete all user's incomes
     try {
       await Income.deleteMany({ user: user._id });
-      console.log(' All user incomes deleted');
+      console.log('🗑️ All user incomes deleted');
     } catch (incomeError) {
-      console.error(' Error deleting user incomes:', incomeError);
+      console.error('⚠️ Error deleting user incomes:', incomeError);
     }
 
+    // Delete user account
     await User.findByIdAndDelete(req.user._id);
 
     res.json({
@@ -505,7 +546,7 @@ exports.deleteAccount = async (req, res) => {
     });
 
   } catch (error) {
-    console.error(' Delete account error:', error);
+    console.error('❌ Delete account error:', error);
     res.status(500).json({ 
       success: false,
       message: 'Error deleting account',
