@@ -34,8 +34,10 @@ const app = express();
 //     'Origin'
 //   ]
 // }));
-
-app.use(cors());
+app.use(cors({
+  origin: 'https://mellow-conkies-dee65a.netlify.app/', // Replace with your frontend URL
+  credentials: true
+}));
 
 
 app.use(express.json({ 
