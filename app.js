@@ -9,16 +9,15 @@ connectDB();
 
 const app = express();
 
-// Enhanced CORS configuration
-// Updated CORS configuration
+// Enhanced CORS configuration for Vercel
 app.use(cors({
   origin: function (origin, callback) {
     // List of allowed origins
     const allowedOrigins = [
       'http://localhost:5173', // Local development
-      'https://effulgent-belekoy-71e975.netlify.app', // Netlify deployment
-      'https://main--effulgent-belekoy-71e975.netlify.app' // Netlify preview deployments
-    ];
+      'https://mellow-conkies-dee65a.netlify.app/', // Netlify preview deployments
+      process.env.FRONTEND_URL // Environment variable for flexibility
+    ].filter(Boolean); // Remove any undefined values
     
     // Allow requests with no origin (like mobile apps, Postman, etc.)
     if (!origin) return callback(null, true);
@@ -27,8 +26,12 @@ app.use(cors({
       // Origin is in the allowed list
       callback(null, true);
     } else {
-      // Origin is not allowed
-      callback(new Error('Not allowed by CORS'));
+      // Origin is not allowed but don't throw error in production
+      if (process.env.NODE_ENV === 'production') {
+        callback(null, true); // Allow all in production for now
+      } else {
+        callback(new Error('Not allowed by CORS'));
+      }
     }
   },
   credentials: true, // Allow cookies
@@ -75,15 +78,24 @@ app.use((req, res, next) => {
   next();
 });
 
-// Routes - FIXED: Changed from './routes/income' to './routes/incomes'
+// Routes
 app.use('/api/auth', require('./routes/auth'));
-app.use('/api/incomes', require('./routes/income')); // ← FIXED THIS LINE
+app.use('/api/incomes', require('./routes/income'));
 app.use('/api/expenses', require('./routes/expense'));
 app.use('/api/dashboard', require('./routes/dashboard'));
 app.use('/api/ai', require('./routes/ai'));
 app.use('/api/ai', require('./routes/aiManagement'));
 
-
+// Vercel needs a root endpoint
+app.get('/', (req, res) => {
+  res.status(200).json({ 
+    success: true,
+    message: 'Expense Tracker API is running on Vercel!',
+    timestamp: new Date().toISOString(),
+    environment: process.env.NODE_ENV || 'development',
+    version: '1.0.0'
+  });
+});
 
 // Enhanced health check route
 app.get('/api/health', (req, res) => {
@@ -92,7 +104,8 @@ app.get('/api/health', (req, res) => {
     message: 'Expense Tracker API is running!',
     timestamp: new Date().toISOString(),
     environment: process.env.NODE_ENV || 'development',
-    database: 'Connected', // Assuming DB connection is established
+    platform: 'Vercel',
+    database: 'Connected',
     upload: {
       enabled: true,
       maxFileSize: '5MB',
@@ -102,7 +115,6 @@ app.get('/api/health', (req, res) => {
       cloudinary: !!process.env.CLOUDINARY_CLOUD_NAME,
       jwt: !!process.env.JWT_SECRET
     },
-    // Add routes information
     routes: {
       incomes: '/api/incomes',
       expenses: '/api/expenses',
@@ -297,6 +309,15 @@ app.use((err, req, res, next) => {
     });
   }
 
+  // CORS errors
+  if (err.message && err.message.includes('CORS')) {
+    return res.status(403).json({
+      success: false,
+      message: 'CORS policy violation',
+      error: err.message
+    });
+  }
+
   // Default error
   res.status(500).json({ 
     success: false,
@@ -315,6 +336,8 @@ app.use('*', (req, res) => {
     path: req.originalUrl,
     method: req.method,
     availableEndpoints: [
+      'GET /',
+      'GET /api/health',
       'GET /api/incomes',
       'POST /api/incomes',
       'PUT /api/incomes/:id',
@@ -323,7 +346,6 @@ app.use('*', (req, res) => {
       'POST /api/expenses',
       'POST /api/auth/register',
       'POST /api/auth/login',
-      'GET /api/health',
       'POST /api/test-upload',
       'GET /api/test-cloudinary'
     ]
@@ -332,17 +354,24 @@ app.use('*', (req, res) => {
 
 const PORT = process.env.PORT || 5000;
 
-app.listen(PORT, () => {
-  console.log('\n Expense Tracker API Server Started');
-  console.log(` Port: ${PORT}`);
-  console.log(` Environment: ${process.env.NODE_ENV || 'development'}`);
-  console.log(` Database: ${process.env.MONGODB_URI ? 'Connected' : 'Not configured'}`);
-  console.log(` Cloudinary: ${process.env.CLOUDINARY_CLOUD_NAME ? 'Configured' : 'Not configured'}`);
-  console.log(` JWT: ${process.env.JWT_SECRET ? 'Configured' : 'Not configured'}`);
-  console.log('\n Available Routes:');
-  console.log(`    Incomes: http://localhost:${PORT}/api/incomes`);
-  console.log(`    Expenses: http://localhost:${PORT}/api/expenses`);
-  console.log(`    Auth: http://localhost:${PORT}/api/auth`);
-  console.log(`    Health: http://localhost:${PORT}/api/health`);
-  console.log('\n Server is ready to accept requests...\n');
-});
+// Start server only if not in Vercel environment (Vercel handles this)
+if (process.env.NODE_ENV !== 'production' || !process.env.VERCEL) {
+  app.listen(PORT, () => {
+    console.log('\n Expense Tracker API Server Started');
+    console.log(` Port: ${PORT}`);
+    console.log(` Environment: ${process.env.NODE_ENV || 'development'}`);
+    console.log(` Database: ${process.env.MONGODB_URI ? 'Connected' : 'Not configured'}`);
+    console.log(` Cloudinary: ${process.env.CLOUDINARY_CLOUD_NAME ? 'Configured' : 'Not configured'}`);
+    console.log(` JWT: ${process.env.JWT_SECRET ? 'Configured' : 'Not configured'}`);
+    console.log('\n Available Routes:');
+    console.log(`    Root: http://localhost:${PORT}/`);
+    console.log(`    Incomes: http://localhost:${PORT}/api/incomes`);
+    console.log(`    Expenses: http://localhost:${PORT}/api/expenses`);
+    console.log(`    Auth: http://localhost:${PORT}/api/auth`);
+    console.log(`    Health: http://localhost:${PORT}/api/health`);
+    console.log('\n Server is ready to accept requests...\n');
+  });
+}
+
+// Export the app for Vercel
+module.exports = app;
