@@ -1,5 +1,5 @@
 const User = require('../models/User');
-const Income = require('../models/Income'); // Added Income model import
+const Income = require('../models/Income');
 const jwt = require('jsonwebtoken');
 const { uploadToCloudinary, deleteFromCloudinary } = require('../config/realCloudinary');
 
@@ -11,12 +11,12 @@ const generateToken = (id) => {
 
 exports.register = async (req, res) => {
   try {
-    console.log('\n🎯 DEBUG - Registration started');
-    console.log('📦 Request body keys:', Object.keys(req.body));
-    console.log('📁 Request files:', req.files ? Object.keys(req.files) : 'No files');
+    console.log('\n DEBUG - Registration started');
+    console.log(' Request body keys:', Object.keys(req.body));
+    console.log(' Request files:', req.files ? Object.keys(req.files) : 'No files');
     
     // Debug request details
-    console.log('🔍 Request details:', {
+    console.log(' Request details:', {
       contentType: req.headers['content-type'],
       contentLength: req.headers['content-length'],
       hasBody: !!req.body,
@@ -25,7 +25,7 @@ exports.register = async (req, res) => {
 
     if (req.files && req.files.profileImage) {
       const file = req.files.profileImage;
-      console.log('📸 File details:', {
+      console.log(' File details:', {
         name: file.name,
         size: `${(file.size / 1024 / 1024).toFixed(2)}MB`,
         mimetype: file.mimetype,
@@ -197,23 +197,8 @@ exports.register = async (req, res) => {
 
     console.log('✅ User created successfully:', user.email);
 
-    // Create sample income data for new user (optional)
-    try {
-      const sampleIncome = new Income({
-        user: user._id,
-        title: 'Welcome Income',
-        amount: 0,
-        category: 'Other',
-        description: 'Get started by adding your first income!',
-        icon: '💰',
-        date: new Date()
-      });
-      await sampleIncome.save();
-      console.log('✅ Sample income created for new user');
-    } catch (incomeError) {
-      console.log('⚠️ Could not create sample income:', incomeError.message);
-      // Don't fail registration if sample income fails
-    }
+    // REMOVED: Automatic sample income creation for new users
+    // Now fresh users will start with completely empty income records
 
     // Determine success message based on image upload status
     let successMessage = 'User registered successfully';
@@ -290,7 +275,7 @@ exports.login = async (req, res) => {
     const user = await User.findOne({ email: email.toLowerCase().trim() });
 
     if (user && (await user.matchPassword(password))) {
-      // Get user's income count for dashboard info
+      // Get user's actual income count (will be 0 for fresh users)
       const incomeCount = await Income.countDocuments({ user: user._id });
       
       res.json({
@@ -304,7 +289,7 @@ exports.login = async (req, res) => {
           profileImage: user.profileImage,
           token: generateToken(user._id),
           stats: {
-            incomeCount
+            incomeCount // This will be 0 for new users since no automatic income is created
           }
         }
       });
