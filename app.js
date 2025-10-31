@@ -80,6 +80,10 @@ app.use('/api/auth', require('./routes/auth'));
 app.use('/api/incomes', require('./routes/income')); // ← FIXED THIS LINE
 app.use('/api/expenses', require('./routes/expense'));
 app.use('/api/dashboard', require('./routes/dashboard'));
+app.use('/api/ai', require('./routes/ai'));
+app.use('/api/ai', require('./routes/aiManagement'));
+
+
 
 // Enhanced health check route
 app.get('/api/health', (req, res) => {
