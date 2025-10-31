@@ -37,7 +37,6 @@ exports.deleteExpense = async (req, res) => {
       return res.status(404).json({ message: 'Expense not found' });
     }
 
-    // Check if expense belongs to user
     if (expense.user.toString() !== req.user._id.toString()) {
       return res.status(401).json({ message: 'Not authorized' });
     }
@@ -78,9 +77,6 @@ exports.downloadExpenses = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
-// @desc    Update expense
-// @route   PUT /api/expenses/:id
-// @access  Private
 exports.updateExpense = async (req, res) => {
   try {
     const { title, amount, category, description, date } = req.body;
@@ -91,12 +87,10 @@ exports.updateExpense = async (req, res) => {
       return res.status(404).json({ message: 'Expense not found' });
     }
 
-    // Check if expense belongs to user
     if (expense.user.toString() !== req.user._id.toString()) {
       return res.status(401).json({ message: 'Not authorized' });
     }
 
-    // Update fields
     expense.title = title || expense.title;
     expense.amount = amount || expense.amount;
     expense.category = category || expense.category;
@@ -120,9 +114,6 @@ exports.updateExpense = async (req, res) => {
   }
 };
 
-// @desc    Get single expense
-// @route   GET /api/expenses/:id
-// @access  Private
 exports.getExpense = async (req, res) => {
   try {
     const expense = await Expense.findById(req.params.id);
@@ -131,7 +122,6 @@ exports.getExpense = async (req, res) => {
       return res.status(404).json({ message: 'Expense not found' });
     }
 
-    // Check if expense belongs to user
     if (expense.user.toString() !== req.user._id.toString()) {
       return res.status(401).json({ message: 'Not authorized' });
     }

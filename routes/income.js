@@ -10,12 +10,11 @@ const { protect } = require('../middleware/auth');
 const router = express.Router();
 
 router.route('/')
-  .get(protect, getIncomes)    // GET all incomes for user
-  .post(protect, addIncome);   // CREATE new income
+  .get(protect, getIncomes)  
+  .post(protect, addIncome); 
 
 router.route('/:id')
-  .get(protect, getIncome)        // GET single income
-  .put(protect, updateIncome)     // UPDATE income
-  .delete(protect, deleteIncome); // DELETE income
-
+  .get(protect, getIncome)       
+  .put(protect, updateIncome)    
+  .delete(protect, deleteIncome);
 module.exports = router;

@@ -1,6 +1,5 @@
 const cloudinary = require('cloudinary').v2;
 
-// Configure Cloudinary
 cloudinary.config({
   cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
   api_key: process.env.CLOUDINARY_API_KEY,
@@ -23,20 +22,20 @@ const uploadToCloudinary = async (fileBuffer, options = {}) => {
         folder: 'expense-tracker/profiles',
         public_id: `profile-${Date.now()}`,
         resource_type: 'image',
-        timeout: 30000, // 30 second timeout
+        timeout: 30000, 
         ...options
       };
 
       const result = await cloudinary.uploader.upload(dataURI, uploadOptions);
-      console.log('✅ Cloudinary upload successful!');
+      console.log(' Cloudinary upload successful!');
       return result;
 
     } catch (error) {
       lastError = error;
-      console.error(`❌ Attempt ${attempt} failed:`, error.message);
+      console.error(` Attempt ${attempt} failed:`, error.message);
       
       if (attempt < maxRetries) {
-        console.log(`⏳ Retrying in 2 seconds...`);
+        console.log(` Retrying in 2 seconds...`);
         await new Promise(resolve => setTimeout(resolve, 2000));
       }
     }
@@ -45,7 +44,6 @@ const uploadToCloudinary = async (fileBuffer, options = {}) => {
   throw lastError;
 };
 
-// Keep the rest of your functions...
 const deleteFromCloudinary = async (imageUrl) => {
   try {
     if (!imageUrl) return;
@@ -57,12 +55,12 @@ const deleteFromCloudinary = async (imageUrl) => {
     const pathParts = parts.slice(uploadIndex + 1);
     const publicId = pathParts.join('/').replace(/\.[^/.]+$/, "");
     
-    console.log('🗑️ Deleting from Cloudinary:', publicId);
+    console.log(' Deleting from Cloudinary:', publicId);
     const result = await cloudinary.uploader.destroy(publicId);
-    console.log('✅ Deletion result:', result);
+    console.log(' Deletion result:', result);
     return result;
   } catch (error) {
-    console.error('❌ Error deleting image from Cloudinary:', error);
+    console.error(' Error deleting image from Cloudinary:', error);
     throw error;
   }
 };

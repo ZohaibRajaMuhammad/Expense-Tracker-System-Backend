@@ -4,34 +4,26 @@ const cors = require('cors');
 const fileUpload = require('express-fileupload');
 const connectDB = require('./config/database');
 
-// Connect to database
 connectDB();
 
 const app = express();
 
-// Enhanced CORS configuration
-// Updated CORS configuration
 app.use(cors({
   origin: function (origin, callback) {
-    // List of allowed origins
     const allowedOrigins = [
       'http://localhost:5173', // Local development
       'https://effulgent-belekoy-71e975.netlify.app', // Netlify deployment
-      'https://main--effulgent-belekoy-71e975.netlify.app' // Netlify preview deployments
+      'https://mellow-conkies-dee65a.netlify.app/' // Netlify preview deployments
     ];
-    
-    // Allow requests with no origin (like mobile apps, Postman, etc.)
     if (!origin) return callback(null, true);
     
     if (allowedOrigins.indexOf(origin) !== -1) {
-      // Origin is in the allowed list
       callback(null, true);
     } else {
-      // Origin is not allowed
       callback(new Error('Not allowed by CORS'));
     }
   },
-  credentials: true, // Allow cookies
+  credentials: true, 
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
   allowedHeaders: [
     'Content-Type', 
@@ -42,7 +34,7 @@ app.use(cors({
   ]
 }));
 
-// Body parsing middleware - CRITICAL: Must come before fileUpload
+
 app.use(express.json({ 
   limit: '10mb',
   verify: (req, res, buf) => {
@@ -56,16 +48,15 @@ app.use(express.urlencoded({
 
 app.use(fileUpload({
   limits: { 
-    fileSize: 5 * 1024 * 1024 // 5MB limit
+    fileSize: 5 * 1024 * 1024 
   },
   abortOnLimit: true,
   createParentPath: true,
   debug: process.env.NODE_ENV === 'development',
-  useTempFiles: false, // Important: don't use temp files, work with buffers
+  useTempFiles: false,
   tempFileDir: '/tmp/'
 }));
 
-// Request logging middleware
 app.use((req, res, next) => {
   console.log(` ${new Date().toISOString()} ${req.method} ${req.path}`);
   if (req.method === 'POST' || req.method === 'PUT') {
@@ -75,20 +66,18 @@ app.use((req, res, next) => {
   next();
 });
 
-// Routes - FIXED: Changed from './routes/income' to './routes/incomes'
 app.use('/api/auth', require('./routes/auth'));
-app.use('/api/incomes', require('./routes/income')); // ← FIXED THIS LINE
+app.use('/api/incomes', require('./routes/income')); 
 app.use('/api/expenses', require('./routes/expense'));
 app.use('/api/dashboard', require('./routes/dashboard'));
 
-// Enhanced health check route
 app.get('/api/health', (req, res) => {
   const healthCheck = {
     success: true,
     message: 'Expense Tracker API is running!',
     timestamp: new Date().toISOString(),
     environment: process.env.NODE_ENV || 'development',
-    database: 'Connected', // Assuming DB connection is established
+    database: 'Connected',
     upload: {
       enabled: true,
       maxFileSize: '5MB',
@@ -98,7 +87,6 @@ app.get('/api/health', (req, res) => {
       cloudinary: !!process.env.CLOUDINARY_CLOUD_NAME,
       jwt: !!process.env.JWT_SECRET
     },
-    // Add routes information
     routes: {
       incomes: '/api/incomes',
       expenses: '/api/expenses',
@@ -110,7 +98,6 @@ app.get('/api/health', (req, res) => {
   res.status(200).json(healthCheck);
 });
 
-// Enhanced test upload endpoint
 app.post('/api/test-upload', (req, res) => {
   try {
     console.log(' Test upload request received');
@@ -170,12 +157,10 @@ app.post('/api/test-upload', (req, res) => {
   }
 });
 
-// Cloudinary test endpoint
 app.get('/api/test-cloudinary', async (req, res) => {
   try {
     const { cloudinary } = require('./config/realCloudinary');
     
-    // Test Cloudinary configuration
     const configTest = {
       cloud_name: !!process.env.CLOUDINARY_CLOUD_NAME,
       api_key: !!process.env.CLOUDINARY_API_KEY,
@@ -194,7 +179,6 @@ app.get('/api/test-cloudinary', async (req, res) => {
       });
     }
 
-    // Try to ping Cloudinary
     const result = await cloudinary.api.ping();
     
     res.json({
@@ -218,11 +202,9 @@ app.get('/api/test-cloudinary', async (req, res) => {
   }
 });
 
-// Enhanced error handling middleware
 app.use((err, req, res, next) => {
   console.error(' Server Error:', err.stack);
   
-  // File upload errors
   if (err.message && err.message.includes('File too large')) {
     return res.status(400).json({ 
       success: false,
@@ -247,7 +229,6 @@ app.use((err, req, res, next) => {
     });
   }
   
-  // Multer-like errors (for compatibility)
   if (err.code === 'LIMIT_UNEXPECTED_FILE') {
     return res.status(400).json({
       success: false,
@@ -257,7 +238,6 @@ app.use((err, req, res, next) => {
     });
   }
 
-  // Route not found errors (for income routes)
   if (err.message && err.message.includes('Cannot find module')) {
     if (err.message.includes('./routes/income')) {
       return res.status(500).json({
@@ -269,7 +249,6 @@ app.use((err, req, res, next) => {
     }
   }
 
-  // Database errors
   if (err.name === 'MongoError' || err.name === 'MongoServerError') {
     return res.status(500).json({
       success: false,
@@ -278,7 +257,6 @@ app.use((err, req, res, next) => {
     });
   }
 
-  // JWT errors
   if (err.name === 'JsonWebTokenError') {
     return res.status(401).json({
       success: false,
@@ -293,7 +271,6 @@ app.use((err, req, res, next) => {
     });
   }
 
-  // Default error
   res.status(500).json({ 
     success: false,
     message: 'Internal server error',
@@ -302,7 +279,6 @@ app.use((err, req, res, next) => {
   });
 });
 
-// 404 handler - must be last
 app.use('*', (req, res) => {
   console.log(` 404 - Route not found: ${req.method} ${req.originalUrl}`);
   res.status(404).json({ 

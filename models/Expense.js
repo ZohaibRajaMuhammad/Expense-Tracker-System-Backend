@@ -15,11 +15,11 @@ const expenseSchema = new mongoose.Schema({
     type: String,
     required: [true, 'Category is required'],
     enum: ['Food', 'Transport', 'Entertainment', 'Healthcare', 'Shopping', 'Bills', 'Education', 'Other']
-  }, // New field for icon/emoji
+  }, 
   icon: {
     type: String,
     trim: true,
-    default: '' // Default empty string, can store emojis like "💰", "💼", "📈"
+    default: '' 
   },
   date: {
     type: Date,

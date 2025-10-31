@@ -19,7 +19,6 @@ const protect = async (req, res, next) => {
         });
       }
       
-      // Check if user account is still active (you can add this field to your User model)
       if (user.status && user.status === 'suspended') {
         return res.status(401).json({
           success: false,
@@ -33,7 +32,6 @@ const protect = async (req, res, next) => {
     } catch (error) {
       console.error('Auth middleware error:', error);
       
-      // Handle different JWT errors
       if (error.name === 'JsonWebTokenError') {
         return res.status(401).json({ 
           success: false,
@@ -95,7 +93,6 @@ const optional = async (req, res, next) => {
       const decoded = jwt.verify(token, process.env.JWT_SECRET);
       req.user = await User.findById(decoded.id).select('-password');
     } catch (error) {
-      // Don't throw error, just continue without user
       console.log('Optional auth failed:', error.message);
     }
   }

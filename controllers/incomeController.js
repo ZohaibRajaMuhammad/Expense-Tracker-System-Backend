@@ -80,9 +80,6 @@ exports.downloadIncomes = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
-// @desc    Update income
-// @route   PUT /api/incomes/:id
-// @access  Private
 exports.updateIncome = async (req, res) => {
   try {
     const { title, amount, category, description, date } = req.body;
@@ -93,12 +90,10 @@ exports.updateIncome = async (req, res) => {
       return res.status(404).json({ message: 'Income not found' });
     }
 
-    // Check if income belongs to user
     if (income.user.toString() !== req.user._id.toString()) {
       return res.status(401).json({ message: 'Not authorized' });
     }
 
-    // Update fields
     income.title = title || income.title;
     income.amount = amount || income.amount;
     income.category = category || income.category;
@@ -122,9 +117,6 @@ exports.updateIncome = async (req, res) => {
   }
 };
 
-// @desc    Get single income
-// @route   GET /api/incomes/:id
-// @access  Private
 exports.getIncome = async (req, res) => {
   try {
     const income = await Income.findById(req.params.id);
@@ -133,7 +125,6 @@ exports.getIncome = async (req, res) => {
       return res.status(404).json({ message: 'Income not found' });
     }
 
-    // Check if income belongs to user
     if (income.user.toString() !== req.user._id.toString()) {
       return res.status(401).json({ message: 'Not authorized' });
     }
