@@ -7,36 +7,11 @@ const connectDB = require('./config/database');
 connectDB();
 
 const app = express();
-
-// app.use(cors(
-//   {
-//   origin: function (origin, callback) {
-//     const allowedOrigins = [
-//       'http://localhost:5173', // Local development
-//       'https://mellow-conkies-dee65a.netlify.app/', // Netlify deployment
-//       'https://mellow-conkies-dee65a.netlify.app/' // Netlify preview deployments
-//     ];
-//     if (!origin) return callback(null, true);
-    
-//     if (allowedOrigins.indexOf(origin) !== -1) {
-//       callback(null, true);
-//     } else {
-//       callback(new Error('Not allowed by CORS'));
-//     }
-//   },
-//   credentials: true, 
-//   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-//   allowedHeaders: [
-//     'Content-Type', 
-//     'Authorization', 
-//     'X-Requested-With',
-//     'Accept',
-//     'Origin'
-//   ]
-// }));
 app.use(cors({
-  origin: 'https://mellow-conkies-dee65a.netlify.app/', // Replace with your frontend URL
-  credentials: true
+  origin: 'https://mellow-conkies-dee65a.netlify.app',
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
 }));
 
 
