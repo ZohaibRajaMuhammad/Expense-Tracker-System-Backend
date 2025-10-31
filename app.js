@@ -12,7 +12,7 @@ app.use(cors({
   origin: function (origin, callback) {
     const allowedOrigins = [
       'http://localhost:5173', // Local development
-      'https://effulgent-belekoy-71e975.netlify.app', // Netlify deployment
+      'https://mellow-conkies-dee65a.netlify.app/', // Netlify deployment
       'https://mellow-conkies-dee65a.netlify.app/' // Netlify preview deployments
     ];
     if (!origin) return callback(null, true);
