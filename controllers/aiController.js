@@ -15,7 +15,7 @@ exports.getFinancialInsights = async (req, res) => {
       Expense.find({ user: userId })
     ]);
 
-    if (incomes.length === 0 && expenses.length === 0) {
+    if ((!incomes || incomes.length === 0) && (!expenses || expenses.length === 0)) {
       return res.json({
         success: true,
         message: "Start tracking your income and expenses to get personalized AI insights!",
@@ -35,10 +35,10 @@ exports.getFinancialInsights = async (req, res) => {
     }
 
     // Calculate financial metrics
-    const financialData = calculateFinancialMetrics(incomes, expenses);
+    const financialData = calculateFinancialMetrics(incomes || [], expenses || []);
     
     // Generate AI insights
-    const insights = await generateAIInsights(financialData, incomes, expenses);
+    const insights = await generateAIInsights(financialData, incomes || [], expenses || []);
 
     res.json({
       success: true,
@@ -47,7 +47,6 @@ exports.getFinancialInsights = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('AI insights error:', error);
     res.status(500).json({
       success: false,
       message: 'Failed to generate AI insights',
@@ -69,23 +68,23 @@ exports.getPersonalizedTips = async (req, res) => {
       Expense.find({ user: userId })
     ]);
 
-    const financialData = calculateFinancialMetrics(incomes, expenses);
+    const financialData = calculateFinancialMetrics(incomes || [], expenses || []);
     
     let tips = [];
     switch (category) {
       case 'income':
-        tips = generateIncomeTips(financialData, incomes);
+        tips = generateIncomeTips(financialData, incomes || []);
         break;
       case 'expense':
-        tips = generateExpenseTips(financialData, expenses);
+        tips = generateExpenseTips(financialData, expenses || []);
         break;
       case 'saving':
         tips = generateSavingTips(financialData);
         break;
       default:
         tips = [
-          ...generateIncomeTips(financialData, incomes),
-          ...generateExpenseTips(financialData, expenses),
+          ...generateIncomeTips(financialData, incomes || []),
+          ...generateExpenseTips(financialData, expenses || []),
           ...generateSavingTips(financialData)
         ];
     }
@@ -98,7 +97,6 @@ exports.getPersonalizedTips = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('AI tips error:', error);
     res.status(500).json({
       success: false,
       message: 'Failed to generate tips',
@@ -119,9 +117,9 @@ exports.getSpendingAnalysis = async (req, res) => {
       Expense.find({ user: userId })
     ]);
 
-    const analysis = analyzeSpendingPatterns(incomes, expenses);
-    const predictions = predictFutureSpending(expenses);
-    const opportunities = identifySavingsOpportunities(expenses);
+    const analysis = analyzeSpendingPatterns(incomes || [], expenses || []);
+    const predictions = predictFutureSpending(expenses || []);
+    const opportunities = identifySavingsOpportunities(expenses || []);
 
     res.json({
       success: true,
@@ -130,12 +128,11 @@ exports.getSpendingAnalysis = async (req, res) => {
         spendingPatterns: analysis,
         predictions,
         savingsOpportunities: opportunities,
-        riskAssessment: assessFinancialRisk(incomes, expenses)
+        riskAssessment: assessFinancialRisk(incomes || [], expenses || [])
       }
     });
 
   } catch (error) {
-    console.error('Spending analysis error:', error);
     res.status(500).json({
       success: false,
       message: 'Failed to analyze spending',
@@ -154,7 +151,7 @@ exports.getInvestmentSuggestions = async (req, res) => {
     const incomes = await Income.find({ user: userId });
     const expenses = await Expense.find({ user: userId });
 
-    const financialData = calculateFinancialMetrics(incomes, expenses);
+    const financialData = calculateFinancialMetrics(incomes || [], expenses || []);
     const suggestions = generateInvestmentSuggestions(financialData);
 
     res.json({
@@ -164,7 +161,6 @@ exports.getInvestmentSuggestions = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Investment suggestions error:', error);
     res.status(500).json({
       success: false,
       message: 'Failed to generate investment suggestions',
@@ -173,35 +169,36 @@ exports.getInvestmentSuggestions = async (req, res) => {
   }
 };
 
-// Helper Functions
-
-function calculateFinancialMetrics(incomes, expenses) {
-  const totalIncome = incomes.reduce((sum, income) => sum + income.amount, 0);
-  const totalExpenses = expenses.reduce((sum, expense) => sum + expense.amount, 0);
+function calculateFinancialMetrics(incomes = [], expenses = []) {
+  const safeIncomes = Array.isArray(incomes) ? incomes : [];
+  const safeExpenses = Array.isArray(expenses) ? expenses : [];
+  
+  const totalIncome = safeIncomes.reduce((sum, income) => sum + (income?.amount || 0), 0);
+  const totalExpenses = safeExpenses.reduce((sum, expense) => sum + (expense?.amount || 0), 0);
   const netSavings = totalIncome - totalExpenses;
   const savingsRate = totalIncome > 0 ? (netSavings / totalIncome) * 100 : 0;
 
-  // Current month calculations
   const currentMonth = new Date().getMonth();
   const currentYear = new Date().getFullYear();
   
-  const currentMonthIncome = incomes
+  const currentMonthIncome = safeIncomes
     .filter(income => {
+      if (!income || !income.date) return false;
       const incomeDate = new Date(income.date);
       return incomeDate.getMonth() === currentMonth && incomeDate.getFullYear() === currentYear;
     })
-    .reduce((sum, income) => sum + income.amount, 0);
+    .reduce((sum, income) => sum + (income?.amount || 0), 0);
 
-  const currentMonthExpense = expenses
+  const currentMonthExpense = safeExpenses
     .filter(expense => {
+      if (!expense || !expense.date) return false;
       const expenseDate = new Date(expense.date);
       return expenseDate.getMonth() === currentMonth && expenseDate.getFullYear() === currentYear;
     })
-    .reduce((sum, expense) => sum + expense.amount, 0);
+    .reduce((sum, expense) => sum + (expense?.amount || 0), 0);
 
-  // Category analysis
-  const incomeByCategory = analyzeByCategory(incomes, 'income');
-  const expenseByCategory = analyzeByCategory(expenses, 'expense');
+  const incomeByCategory = analyzeByCategory(safeIncomes, 'income');
+  const expenseByCategory = analyzeByCategory(safeExpenses, 'expense');
 
   return {
     totalIncome,
@@ -213,16 +210,22 @@ function calculateFinancialMetrics(incomes, expenses) {
     incomeByCategory,
     expenseByCategory,
     transactionCount: {
-      incomes: incomes.length,
-      expenses: expenses.length
+      incomes: safeIncomes.length,
+      expenses: safeExpenses.length
     }
   };
 }
 
-function analyzeByCategory(transactions, type) {
+function analyzeByCategory(transactions = [], type) {
   const categoryMap = {};
   
+  if (!transactions || !Array.isArray(transactions)) {
+    return categoryMap;
+  }
+  
   transactions.forEach(transaction => {
+    if (!transaction || !transaction.category) return;
+    
     const category = transaction.category;
     if (!categoryMap[category]) {
       categoryMap[category] = {
@@ -232,22 +235,23 @@ function analyzeByCategory(transactions, type) {
         percentage: 0
       };
     }
-    categoryMap[category].total += transaction.amount;
+    categoryMap[category].total += transaction.amount || 0;
     categoryMap[category].count += 1;
   });
 
-  const total = Object.values(categoryMap).reduce((sum, cat) => sum + cat.total, 0);
+  const total = Object.values(categoryMap).reduce((sum, cat) => sum + (cat?.total || 0), 0);
   
   Object.keys(categoryMap).forEach(category => {
-    categoryMap[category].average = categoryMap[category].total / categoryMap[category].count;
-    categoryMap[category].percentage = (categoryMap[category].total / total) * 100;
+    if (categoryMap[category].count > 0) {
+      categoryMap[category].average = categoryMap[category].total / categoryMap[category].count;
+    }
+    categoryMap[category].percentage = total > 0 ? (categoryMap[category].total / total) * 100 : 0;
   });
 
   return categoryMap;
 }
 
-async function generateAIInsights(financialData, incomes, expenses) {
-  // Generate comprehensive insights based on financial data
+async function generateAIInsights(financialData, incomes = [], expenses = []) {
   const incomeTips = generateIncomeTips(financialData, incomes);
   const expenseTips = generateExpenseTips(financialData, expenses);
   const savingTips = generateSavingTips(financialData);
@@ -264,11 +268,10 @@ async function generateAIInsights(financialData, incomes, expenses) {
   };
 }
 
-function generateIncomeTips(financialData, incomes) {
+function generateIncomeTips(financialData, incomes = []) {
   const tips = [];
-  const incomeCategories = financialData.incomeByCategory;
+  const incomeCategories = financialData.incomeByCategory || {};
 
-  // Analyze income diversity
   const categoryCount = Object.keys(incomeCategories).length;
   if (categoryCount <= 1) {
     tips.push({
@@ -281,7 +284,6 @@ function generateIncomeTips(financialData, incomes) {
     });
   }
 
-  // Check for irregular income
   const hasSalary = incomeCategories['Salary'];
   if (!hasSalary && financialData.totalIncome > 0) {
     tips.push({
@@ -294,7 +296,6 @@ function generateIncomeTips(financialData, incomes) {
     });
   }
 
-  // Income growth opportunity
   if (financialData.totalIncome > 0) {
     tips.push({
       type: 'GROWTH',
@@ -306,7 +307,6 @@ function generateIncomeTips(financialData, incomes) {
     });
   }
 
-  // Passive income suggestion
   if (financialData.netSavings > 1000) {
     tips.push({
       type: 'PASSIVE_INCOME',
@@ -318,16 +318,15 @@ function generateIncomeTips(financialData, incomes) {
     });
   }
 
-  return tips.slice(0, 5); // Return top 5 tips
+  return tips.slice(0, 5); 
 }
 
-function generateExpenseTips(financialData, expenses) {
+function generateExpenseTips(financialData, expenses = []) {
   const tips = [];
-  const expenseCategories = financialData.expenseByCategory;
+  const expenseCategories = financialData.expenseByCategory || {};
 
-  // High spending categories
   Object.entries(expenseCategories).forEach(([category, data]) => {
-    if (data.percentage > 30) {
+    if (data && data.percentage > 30) {
       tips.push({
         type: 'REDUCTION',
         title: `Reduce ${category} Spending`,
@@ -340,14 +339,15 @@ function generateExpenseTips(financialData, expenses) {
     }
   });
 
-  // Subscription analysis
-  const subscriptionExpenses = expenses.filter(exp => 
-    ['Entertainment', 'Bills', 'Other'].includes(exp.category) &&
-    exp.title.toLowerCase().includes('subscription')
-  );
+  const subscriptionExpenses = expenses.filter(exp => {
+    if (!exp || !exp.category || !exp.title) return false;
+    
+    return (['Entertainment', 'Bills', 'Other'].includes(exp.category)) &&
+           exp.title.toLowerCase().includes('subscription');
+  });
 
   if (subscriptionExpenses.length > 3) {
-    const totalSubscriptions = subscriptionExpenses.reduce((sum, exp) => sum + exp.amount, 0);
+    const totalSubscriptions = subscriptionExpenses.reduce((sum, exp) => sum + (exp?.amount || 0), 0);
     tips.push({
       type: 'SUBSCRIPTION',
       title: 'Review Subscriptions',
@@ -358,9 +358,11 @@ function generateExpenseTips(financialData, expenses) {
     });
   }
 
-  // Impulse spending detection
   const recentExpenses = expenses
-    .filter(exp => moment(exp.date).isAfter(moment().subtract(7, 'days')))
+    .filter(exp => {
+      if (!exp || !exp.date) return false;
+      return moment(exp.date).isAfter(moment().subtract(7, 'days'));
+    })
     .sort((a, b) => new Date(b.date) - new Date(a.date));
 
   if (recentExpenses.length > 10) {
@@ -379,7 +381,7 @@ function generateExpenseTips(financialData, expenses) {
 
 function generateSavingTips(financialData) {
   const tips = [];
-  const savingsRate = financialData.savingsRate;
+  const savingsRate = financialData.savingsRate || 0;
 
   if (savingsRate < 10) {
     tips.push({
@@ -415,8 +417,7 @@ function generateSavingTips(financialData) {
     });
   }
 
-  // Emergency fund check
-  const monthlyExpenses = financialData.currentMonthExpense || financialData.totalExpenses / 12;
+  const monthlyExpenses = financialData.currentMonthExpense || (financialData.totalExpenses / 12) || 0;
   if (financialData.netSavings < (monthlyExpenses * 3)) {
     tips.push({
       type: 'EMERGENCY_FUND',
@@ -425,7 +426,7 @@ function generateSavingTips(financialData) {
       priority: 'HIGH',
       action: 'Set aside funds until you reach this safety net',
       potentialImpact: 'High',
-      current: `${(financialData.netSavings / monthlyExpenses).toFixed(1)} months coverage`
+      current: `${((financialData.netSavings || 0) / (monthlyExpenses || 1)).toFixed(1)} months coverage`
     });
   }
 
@@ -434,9 +435,8 @@ function generateSavingTips(financialData) {
 
 function generateFinancialAnalysis(financialData) {
   const analysis = [];
-  const { savingsRate, netSavings, totalIncome, totalExpenses } = financialData;
+  const { savingsRate = 0, netSavings = 0, totalIncome = 0, totalExpenses = 0 } = financialData;
 
-  // Basic financial health
   if (netSavings > 0) {
     analysis.push({
       aspect: 'Financial Health',
@@ -453,8 +453,7 @@ function generateFinancialAnalysis(financialData) {
     });
   }
 
-  // Expense to income ratio
-  const expenseRatio = (totalExpenses / totalIncome) * 100;
+  const expenseRatio = totalIncome > 0 ? (totalExpenses / totalIncome) * 100 : 0;
   if (expenseRatio > 90) {
     analysis.push({
       aspect: 'Expense Management',
@@ -471,7 +470,6 @@ function generateFinancialAnalysis(financialData) {
     });
   }
 
-  // Savings rate analysis
   if (savingsRate >= 20) {
     analysis.push({
       aspect: 'Savings Rate',
@@ -491,29 +489,31 @@ function generateFinancialAnalysis(financialData) {
   return analysis;
 }
 
-function analyzeSpendingPatterns(incomes, expenses) {
+function analyzeSpendingPatterns(incomes = [], expenses = []) {
   const patterns = [];
   
-  // Weekly spending pattern
   const weeklySpending = {};
   expenses.forEach(expense => {
+    if (!expense || !expense.date) return;
     const week = moment(expense.date).format('YYYY-[W]WW');
-    weeklySpending[week] = (weeklySpending[week] || 0) + expense.amount;
+    weeklySpending[week] = (weeklySpending[week] || 0) + (expense.amount || 0);
   });
 
   const weeklyAverages = Object.values(weeklySpending);
-  const avgWeeklySpending = weeklyAverages.reduce((a, b) => a + b, 0) / weeklyAverages.length;
+  const avgWeeklySpending = weeklyAverages.length > 0 
+    ? weeklyAverages.reduce((a, b) => a + b, 0) / weeklyAverages.length 
+    : 0;
 
   patterns.push({
     pattern: 'WEEKLY_SPENDING',
     average: avgWeeklySpending,
-    trend: 'STABLE', // Could be calculated based on variance
+    trend: 'STABLE',
     insight: `You spend about $${avgWeeklySpending.toFixed(2)} weekly on average`
   });
 
-  // Category patterns
   const categoryPatterns = {};
   expenses.forEach(expense => {
+    if (!expense || !expense.category) return;
     if (!categoryPatterns[expense.category]) {
       categoryPatterns[expense.category] = {
         total: 0,
@@ -521,13 +521,15 @@ function analyzeSpendingPatterns(incomes, expenses) {
         average: 0
       };
     }
-    categoryPatterns[expense.category].total += expense.amount;
+    categoryPatterns[expense.category].total += expense.amount || 0;
     categoryPatterns[expense.category].count += 1;
   });
 
   Object.keys(categoryPatterns).forEach(category => {
-    categoryPatterns[category].average = 
-      categoryPatterns[category].total / categoryPatterns[category].count;
+    if (categoryPatterns[category].count > 0) {
+      categoryPatterns[category].average = 
+        categoryPatterns[category].total / categoryPatterns[category].count;
+    }
   });
 
   patterns.push({
@@ -539,21 +541,31 @@ function analyzeSpendingPatterns(incomes, expenses) {
   return patterns;
 }
 
-function predictFutureSpending(expenses) {
-  if (expenses.length === 0) return [];
+function predictFutureSpending(expenses = []) {
+  if (!expenses || expenses.length === 0) {
+    return {
+      nextMonthPrediction: 0,
+      confidence: 'LOW',
+      factors: ['Insufficient data for prediction'],
+      recommendation: 'Start tracking expenses to get accurate predictions'
+    };
+  }
 
   const monthlySpending = {};
   expenses.forEach(expense => {
+    if (!expense || !expense.date) return;
     const month = moment(expense.date).format('YYYY-MM');
-    monthlySpending[month] = (monthlySpending[month] || 0) + expense.amount;
+    monthlySpending[month] = (monthlySpending[month] || 0) + (expense.amount || 0);
   });
 
   const spendingValues = Object.values(monthlySpending);
-  const avgMonthlySpending = spendingValues.reduce((a, b) => a + b, 0) / spendingValues.length;
+  const avgMonthlySpending = spendingValues.length > 0 
+    ? spendingValues.reduce((a, b) => a + b, 0) / spendingValues.length 
+    : 0;
 
   return {
     nextMonthPrediction: avgMonthlySpending,
-    confidence: 'MEDIUM',
+    confidence: spendingValues.length >= 3 ? 'HIGH' : 'MEDIUM',
     factors: [
       'Historical spending patterns',
       'Seasonal variations',
@@ -563,12 +575,12 @@ function predictFutureSpending(expenses) {
   };
 }
 
-function identifySavingsOpportunities(expenses) {
+function identifySavingsOpportunities(expenses = []) {
   const opportunities = [];
 
-  // Recurring expenses analysis
   const recurringTitles = {};
   expenses.forEach(expense => {
+    if (!expense || !expense.title) return;
     const title = expense.title.toLowerCase();
     recurringTitles[title] = (recurringTitles[title] || 0) + 1;
   });
@@ -577,9 +589,9 @@ function identifySavingsOpportunities(expenses) {
     .filter(([_, count]) => count > 3)
     .forEach(([title, count]) => {
       const relatedExpenses = expenses.filter(exp => 
-        exp.title.toLowerCase() === title
+        exp && exp.title && exp.title.toLowerCase() === title
       );
-      const totalAmount = relatedExpenses.reduce((sum, exp) => sum + exp.amount, 0);
+      const totalAmount = relatedExpenses.reduce((sum, exp) => sum + (exp?.amount || 0), 0);
       
       opportunities.push({
         type: 'RECURRING_EXPENSE',
@@ -591,29 +603,29 @@ function identifySavingsOpportunities(expenses) {
       });
     });
 
-  // High amount expenses
   const highExpenses = expenses
-    .filter(exp => exp.amount > 500)
-    .sort((a, b) => b.amount - a.amount)
+    .filter(exp => exp && exp.amount > 500)
+    .sort((a, b) => (b?.amount || 0) - (a?.amount || 0))
     .slice(0, 5);
 
   highExpenses.forEach(expense => {
+    if (!expense) return;
     opportunities.push({
       type: 'HIGH_VALUE',
-      title: `Large expense: ${expense.title}`,
-      amount: expense.amount,
+      title: `Large expense: ${expense.title || 'Unknown'}`,
+      amount: expense.amount || 0,
       date: expense.date,
       suggestion: 'Review if this large expense was necessary or could be optimized',
-      category: expense.category
+      category: expense.category || 'Unknown'
     });
   });
 
   return opportunities.slice(0, 5);
 }
 
-function assessFinancialRisk(incomes, expenses) {
-  const totalIncome = incomes.reduce((sum, inc) => sum + inc.amount, 0);
-  const totalExpenses = expenses.reduce((sum, exp) => sum + exp.amount, 0);
+function assessFinancialRisk(incomes = [], expenses = []) {
+  const totalIncome = incomes.reduce((sum, inc) => sum + (inc?.amount || 0), 0);
+  const totalExpenses = expenses.reduce((sum, exp) => sum + (exp?.amount || 0), 0);
   const netSavings = totalIncome - totalExpenses;
   const savingsRate = totalIncome > 0 ? (netSavings / totalIncome) * 100 : 0;
 
@@ -625,7 +637,7 @@ function assessFinancialRisk(incomes, expenses) {
 
 function generateInvestmentSuggestions(financialData) {
   const suggestions = [];
-  const { netSavings, savingsRate } = financialData;
+  const { netSavings = 0, savingsRate = 0 } = financialData;
 
   if (netSavings > 5000 && savingsRate > 15) {
     suggestions.push({
@@ -666,39 +678,46 @@ function generateInvestmentSuggestions(financialData) {
   return suggestions;
 }
 
-function identifyQuickWins(expenses) {
+function identifyQuickWins(expenses = []) {
   const quickWins = [];
   
-  // Subscription quick wins
   const subscriptionKeywords = ['netflix', 'spotify', 'prime', 'disney', 'hulu', 'subscription'];
-  const subscriptions = expenses.filter(exp => 
-    subscriptionKeywords.some(keyword => exp.title.toLowerCase().includes(keyword))
-  );
+  const subscriptions = expenses.filter(exp => {
+    if (!exp || !exp.description) return false;
+    
+    const description = exp.description.toLowerCase();
+    return subscriptionKeywords.some(keyword => {
+      if (!keyword) return false;
+      return description.includes(keyword.toLowerCase());
+    });
+  });
 
   if (subscriptions.length > 0) {
-    const monthlySubscriptions = subscriptions.reduce((sum, sub) => sum + sub.amount, 0);
+    const monthlySubscriptions = subscriptions.reduce((sum, sub) => sum + (sub?.amount || 0), 0);
     quickWins.push({
       type: 'SUBSCRIPTION_REVIEW',
       title: 'Review Subscriptions',
-      potentialSavings: `$${monthlySubscriptions * 0.3} monthly`,
+      potentialSavings: `$${(monthlySubscriptions * 0.3).toFixed(2)} monthly`,
       effort: 'LOW',
       impact: 'MEDIUM',
       action: 'Cancel 1-2 unused subscriptions'
     });
   }
 
-  // Dining out reduction
-  const diningExpenses = expenses.filter(exp => 
-    exp.category === 'Food' && 
-    (exp.title.toLowerCase().includes('restaurant') || exp.title.toLowerCase().includes('dining'))
-  );
+  const diningExpenses = expenses.filter(exp => {
+    if (!exp || !exp.category || !exp.title) return false;
+    
+    return exp.category === 'Food' && 
+           (exp.title.toLowerCase().includes('restaurant') || 
+            exp.title.toLowerCase().includes('dining'));
+  });
 
   if (diningExpenses.length > 0) {
-    const diningTotal = diningExpenses.reduce((sum, exp) => sum + exp.amount, 0);
+    const diningTotal = diningExpenses.reduce((sum, exp) => sum + (exp?.amount || 0), 0);
     quickWins.push({
       type: 'DINING_REDUCTION',
       title: 'Reduce Dining Out',
-      potentialSavings: `$${diningTotal * 0.2} monthly`,
+      potentialSavings: `$${(diningTotal * 0.2).toFixed(2)} monthly`,
       effort: 'MEDIUM',
       impact: 'HIGH',
       action: 'Cook at home 2 more times per week'
@@ -708,15 +727,16 @@ function identifyQuickWins(expenses) {
   return quickWins;
 }
 
-function projectNextMonth(financialData, expenses) {
-  const { currentMonthIncome, currentMonthExpense } = financialData;
+function projectNextMonth(financialData, expenses = []) {
+  const { currentMonthIncome = 0, currentMonthExpense = 0 } = financialData;
   
-  const recentExpenses = expenses.filter(exp => 
-    moment(exp.date).isAfter(moment().subtract(3, 'months'))
-  );
+  const recentExpenses = expenses.filter(exp => {
+    if (!exp || !exp.date) return false;
+    return moment(exp.date).isAfter(moment().subtract(3, 'months'));
+  });
 
   const avgRecentExpenses = recentExpenses.length > 0 
-    ? recentExpenses.reduce((sum, exp) => sum + exp.amount, 0) / 3
+    ? recentExpenses.reduce((sum, exp) => sum + (exp?.amount || 0), 0) / 3
     : currentMonthExpense;
 
   return {

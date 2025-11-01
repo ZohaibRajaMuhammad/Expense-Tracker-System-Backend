@@ -25,7 +25,6 @@ exports.aiFinancialManagement = async (req, res) => {
       ...result
     });
   } catch (error) {
-    console.error('AI Management error:', error);
     res.status(500).json({ 
       success: false,
       message: 'AI management service temporarily unavailable',
@@ -34,9 +33,6 @@ exports.aiFinancialManagement = async (req, res) => {
   }
 };
 
-// @desc    Get AI financial recommendations
-// @route   GET /api/ai/recommendations
-// @access  Private
 exports.getAIRecommendations = async (req, res) => {
   try {
     const userId = req.user._id;
@@ -53,7 +49,6 @@ exports.getAIRecommendations = async (req, res) => {
       recommendations
     });
   } catch (error) {
-    console.error('AI Recommendations error:', error);
     res.status(500).json({ 
       success: false,
       message: 'Failed to generate recommendations'
@@ -76,7 +71,6 @@ exports.aiCategorizeExpense = async (req, res) => {
       confidence: suggestedCategory.confidence || 'high'
     });
   } catch (error) {
-    console.error('AI Categorization error:', error);
     res.status(500).json({ 
       success: false,
       message: 'Failed to categorize expense'
@@ -84,11 +78,9 @@ exports.aiCategorizeExpense = async (req, res) => {
   }
 };
 
-// Helper Functions
 async function processAIManagementRequest(userId, message, action, data, incomes, expenses) {
   const financialSummary = generateFinancialSummary(incomes, expenses);
   
-  // If specific action is requested
   if (action) {
     return await handleSpecificAction(userId, action, data, financialSummary);
   }
@@ -342,7 +334,6 @@ async function handleSavingsAdvice(financialSummary) {
   };
 }
 
-// AI-Powered Functions
 async function suggestExpenseCategory(title, amount, description) {
   const expenseKeywords = {
     Food: ['food', 'grocery', 'restaurant', 'dining', 'meal', 'cafe', 'supermarket'],
@@ -408,17 +399,15 @@ Provide a helpful, concise response with specific insights from their data. If t
       };
     }
   } catch (error) {
-    console.error('AI Query error:', error);
+    // console.error('AI Query error:', error);
   }
 
-  // Fallback response
   return {
     message: "I can help you manage your finances! You can ask me to add income/expenses, analyze your spending, or get savings advice. Try: 'Add $50 expense for lunch' or 'How am I spending my money?'",
     type: 'fallback'
   };
 }
 
-// Utility Functions
 function generateFinancialSummary(incomes, expenses) {
   const currentMonthStart = moment().startOf('month');
   const currentMonthEnd = moment().endOf('month');

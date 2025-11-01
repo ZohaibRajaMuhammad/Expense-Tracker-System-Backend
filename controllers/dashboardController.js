@@ -114,9 +114,6 @@ exports.getDashboardData = async (req, res) => {
 
     res.json(dashboardData);
   } catch (error) {
-    console.error('Dashboard error:', error);
-    
-    // If APIs return empty or error, return empty dashboard
     if (error.response && error.response.status === 404) {
       return res.json(getEmptyDashboard());
     }
@@ -294,7 +291,6 @@ exports.getFinancialOverview = async (req, res) => {
 
     res.json(overview);
   } catch (error) {
-    console.error('Financial overview error:', error);
     res.status(500).json({ message: 'Error fetching financial overview' });
   }
 };
