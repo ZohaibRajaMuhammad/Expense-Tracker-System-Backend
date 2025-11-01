@@ -70,10 +70,7 @@ app.use(fileUpload({
 
 // Request logging middleware
 app.use((req, res, next) => {
-  console.log(` ${new Date().toISOString()} ${req.method} ${req.path}`);
   if (req.method === 'POST' || req.method === 'PUT') {
-    console.log(' Body keys:', Object.keys(req.body));
-    console.log(' Files:', req.files ? Object.keys(req.files) : 'None');
   }
   next();
 });
@@ -129,24 +126,15 @@ app.get('/api/health', (req, res) => {
 // Enhanced test upload endpoint
 app.post('/api/test-upload', (req, res) => {
   try {
-    console.log(' Test upload request received');
-    console.log(' Body keys:', Object.keys(req.body));
     
     if (req.files) {
-      console.log(' Files received:', Object.keys(req.files));
+    
       
       Object.keys(req.files).forEach(fileKey => {
         const file = req.files[fileKey];
-        console.log(`    ${fileKey}:`, {
-          name: file.name,
-          size: `${(file.size / 1024 / 1024).toFixed(2)}MB`,
-          mimetype: file.mimetype,
-          dataLength: file.data ? `${file.data.length} bytes` : 'no data',
-          truncated: file.truncated || false
-        });
+        
       });
     } else {
-      console.log(' No files received in request');
     }
 
     if (req.files && req.files.profileImage) {
@@ -176,7 +164,6 @@ app.post('/api/test-upload', (req, res) => {
       bodyReceived: Object.keys(req.body)
     });
   } catch (error) {
-    console.error(' Test upload error:', error);
     res.status(500).json({
       success: false,
       message: 'Test upload failed',
@@ -224,7 +211,6 @@ app.get('/api/test-cloudinary', async (req, res) => {
       pingResult: result
     });
   } catch (error) {
-    console.error(' Cloudinary test failed:', error);
     res.status(500).json({
       success: false,
       message: ' Cloudinary configuration test failed',
@@ -236,7 +222,6 @@ app.get('/api/test-cloudinary', async (req, res) => {
 
 // Enhanced error handling middleware
 app.use((err, req, res, next) => {
-  console.error(' Server Error:', err.stack);
   
   // File upload errors
   if (err.message && err.message.includes('File too large')) {
@@ -329,7 +314,6 @@ app.use((err, req, res, next) => {
 
 // 404 handler - must be last
 app.use('*', (req, res) => {
-  console.log(` 404 - Route not found: ${req.method} ${req.originalUrl}`);
   res.status(404).json({ 
     success: false,
     message: 'Route not found',
@@ -357,19 +341,6 @@ const PORT = process.env.PORT || 5000;
 // Start server only if not in Vercel environment (Vercel handles this)
 if (process.env.NODE_ENV !== 'production' || !process.env.VERCEL) {
   app.listen(PORT, () => {
-    console.log('\n Expense Tracker API Server Started');
-    console.log(` Port: ${PORT}`);
-    console.log(` Environment: ${process.env.NODE_ENV || 'development'}`);
-    console.log(` Database: ${process.env.MONGODB_URI ? 'Connected' : 'Not configured'}`);
-    console.log(` Cloudinary: ${process.env.CLOUDINARY_CLOUD_NAME ? 'Configured' : 'Not configured'}`);
-    console.log(` JWT: ${process.env.JWT_SECRET ? 'Configured' : 'Not configured'}`);
-    console.log('\n Available Routes:');
-    console.log(`    Root: http://localhost:${PORT}/`);
-    console.log(`    Incomes: http://localhost:${PORT}/api/incomes`);
-    console.log(`    Expenses: http://localhost:${PORT}/api/expenses`);
-    console.log(`    Auth: http://localhost:${PORT}/api/auth`);
-    console.log(`    Health: http://localhost:${PORT}/api/health`);
-    console.log('\n Server is ready to accept requests...\n');
   });
 }
 
